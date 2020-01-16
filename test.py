@@ -39,25 +39,40 @@ class Player(pygame.sprite.Sprite):
         self.rect = pygame.Rect(50, 50, 10, 10)
         self.color = (120, 0, 0)
 
-        self.cur_pos = 1, 1
-        self.next_pos = 1, 1
-        self.vel_x = 0
-        self.vel_y = 0
+        self.velocity = pygame.math.Vector2
+        self.speed = 30
+        self.target_pos = pygame.math.Vector2()
+        self.target_direction = pygame.math.Vector2()
+        self.direction = pygame.math.Vector2()
+
+        self.is_moving = False
+
+    def update_pos(self, new_pos):
+        self.target_pos = new_pos
 
     def update(self, *args):
         keys = pygame.key.get_pressed()
-        self.vel_x = 0
-        self.vel_y = 0
-        self.cur_pos = self.next_pos
+        self.direction.x = 0
+        self.direction.y = 0
+        self.is_moving = False
         if keys[pygame.K_a]:
-            self.vel_x = -1
+            self.direction.x = -1
         if keys[pygame.K_d]:
-            self.vel_x = 1
+            self.direction.x = 1
         if keys[pygame.K_w]:
-            self.vel_y = -1
+            self.direction.y = -1
         if keys[pygame.K_s]:
-            self.vel_y = 1
-        self.next_pos = self.cur_pos[0] + self.vel_x, self.cur_pos[1] + self.vel_y
+            self.direction.y = 1
+
+        if not self.is_moving and (self.direction.x != 0 or self.direction.y != 0):
+            self.is_moving = True
+            self.update_pos((self.target_pos + self.direction))
+        elif self.is_moving:
+            pass
+
+        self.rect.x = self.target_pos.x
+        self.rect.y = self.target_pos.y
+
 
 class Obstacle(pygame.sprite.Sprite):
     def __init__(self, *groups):
@@ -75,11 +90,11 @@ def update():
     global player, allSprites, matrix
     allSprites.update()
     player.update()
-    player.rect.x, player.rect.y = matrix.get_coord(player.next_pos)
-    hits = pygame.sprite.spritecollide(player, allSprites, False)
-    if hits:
-        player.next_pos = player.cur_pos
-    player.rect.x, player.rect.y = matrix.get_coord(player.cur_pos)
+    #player.rect.x, player.rect.y = matrix.get_coord(player.next_pos)
+    #hits = pygame.sprite.spritecollide(player, allSprites, False)
+    #if hits:
+    #    player.next_pos = player.cur_pos
+    #player.rect.x, player.rect.y = matrix.get_coord(player.cur_pos)
 
 def draw():
     global window, allSprites, player, matrix
@@ -89,15 +104,6 @@ def draw():
         pygame.draw.rect(window, sprite.color, sprite.rect)
     matrix.draw(window)
     pygame.display.flip()
-
-def move_player():
-    global player, matrix
-    step_x, step_y = player.next_pos[0] - player.cur_pos[0], player.next_pos[1] - player.cur_pos[1]
-    for step in range(10):
-        player.cur_pos = player.cur_pos[0] + step_x, player.cur_pos[1] + step_y
-        player.rect.x, player.rect.y = player.cur_pos[0], player.cur_pos[1]
-        draw()
-    player.cur_pos = player.next_pos
 
 pygame.init()
 window = pygame.display.set_mode((300, 400))
@@ -113,7 +119,6 @@ run = True
 while run:
     clock.tick(30)
     update()
-    move_player()
     draw()
     key_listener()
 pygame.quit()
